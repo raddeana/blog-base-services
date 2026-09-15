@@ -1,5 +1,9 @@
+# Local development: no Nacos required.
+# (The nacos config import in application.yml is gated on dev|test|prod profiles.)
 spring:
   cloud:
     nacos:
       discovery:
+        enabled: false
+      config:
         enabled: false

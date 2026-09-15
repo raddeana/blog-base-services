@@ -5,23 +5,26 @@ spring:
   application:
     name: blog-base-services
   profiles:
-    # default to local (Nacos discovery off); set SPRING_PROFILES_ACTIVE=prod in deployment
+    # local: Nacos disabled, no external dependency; dev/test/prod via SPRING_PROFILES_ACTIVE
     active: ${SPRING_PROFILES_ACTIVE:local}
-  config:
-    import:
-      - optional:nacos:blog-base-services.yml
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/blog_base?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PWD:root}
-
-spring.cloud:
-  nacos:
-    server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-    config:
-      group: DEFAULT_GROUP
-      file-extension: yml
+  cloud:
+    nacos:
+      server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      discovery:
+        # namespace ID (not name); empty means public. Inject per environment: dev/test/prod
+        namespace: ${NACOS_NAMESPACE:}
+        group: DEFAULT_GROUP
+      config:
+        namespace: ${NACOS_NAMESPACE:}
+        group: DEFAULT_GROUP
+        file-extension: yml
 
 mybatis-plus:
   configuration:
@@ -44,3 +47,17 @@ management:
     web:
       exposure:
         include: health,info
+
+---
+# Nacos config is only imported on non-local profiles. Keeping this in a
+# profile-specific document guarantees local/it startup never triggers
+# Nacos client initialization (root-document imports are resolved before
+# profile-specific files such as application-local.yml are loaded).
+# The profile-specific dataId blog-base-services-<profile>.yml is pulled
+# automatically in addition to blog-base-services.yml.
+spring:
+  config:
+    activate:
+      on-profile: dev | test | prod
+    import:
+      - optional:nacos:blog-base-services.yml
